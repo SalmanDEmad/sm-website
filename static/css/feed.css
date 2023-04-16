@@ -1,0 +1,12 @@
+#image-preview {
+    border: 2px dashed gray;
+    padding: 10px;
+    margin-top: 10px;
+    text-align: center;
+  }
+  
+#image-preview img {
+  max-width: 100%;
+}
+  
+  

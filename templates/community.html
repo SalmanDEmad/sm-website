@@ -1,0 +1,64 @@
+{% extends "base.html" %}
+
+{% block content %}
+{% for post in posts %}
+<div class="container w-50" id="post-container">
+  <div class="card">
+    <div class="card-body bg-light justify-content-center">
+      <h6 class="card-text text-muted"><a href="{{ url_for('profile', username=post[3]) }}">u/{{ post[3] }}</a> - {{ post[2] }}</h6>
+      <h5 class="card-title">{{ post[0] }}</h5>
+      {% if post[5] == "Text" %}
+        <h5 class="card-subtitle text-muted">{{ post[1] }}</h5>
+      {% elif post[5] == "Image" %}
+        <img id="post-image" src="data:image/png;base64,{{ post[6] }}" style="width: 32rem" alt="Post Image">
+      {% endif %}
+
+      <div class="like-dislike">
+        <a href="#" class="like-btn" data-postid="{{ post[4] }}">Like</a>
+        <span id="post-likes-dislikes">{{ post[7] - post[8] }}</span>
+        <a href="#" class="dislike-btn" data-postid="{{ post[4] }}">Dislike</a>
+        <button class="btn btn-link" type="button" data-bs-toggle="collapse" data-bs-target="#comment-form-{{ post[4] }}" aria-expanded="false" aria-controls="comment-form-{{ post[4] }}">Comment</button>
+        <div class="collapse" id="comment-form-{{ post[4] }}">
+          <form method="POST" action="/comment/{{ post[4] }}">
+            <div class="form-group">
+              <label for="comment-input-{{ post[4] }}">Comment:</label>
+              <input type="text" class="form-control" id="comment-input-{{ post[4] }}" name="content">
+            </div>
+            <button type="submit" class="btn btn-primary">Submit</button>
+          </form>
+          {% for comment in comments %}
+            {% if comment[1] == post[4] %}
+              <div class="card mt-3">
+                <div class="card-body">
+                  <h6 class="card-subtitle mb-2 text-muted">{{ comment[6] }}</h6>
+                  <p class="card-text">{{ comment[3] }}</p>
+                  <small class="text-muted">{{ comment[4].strftime('%Y-%m-%d %H:%M:%S') }}</small>
+                </div>
+              </div>
+            {% endif %}
+          {% endfor %}
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<script>
+const container = document.querySelector('#post-container');
+const postImage = document.querySelector('#post-image');
+
+function resizeImage() {
+  console.log('resizing image...')
+  const containerWidth = container.offsetWidth;
+  const imageWidth = containerWidth * 0.92;
+  postImage.style.width = `${imageWidth}px`;
+}
+
+resizeImage(); // set initial width
+
+window.addEventListener('resize', resizeImage); // update width on window resize
+
+</script>
+
+{% endfor %}
+{% endblock %}
