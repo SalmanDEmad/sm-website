@@ -1,0 +1,142 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <link rel="stylesheet" href="../static/css/feed.css">
+
+    <title>{% block title %}My App - Feed{% endblock %}</title>
+    <!-- Bootstrap CSS -->
+</head>
+<body>
+    {% include 'base.html' %}
+    <div class="container" style="margin-top: 80px;"></div>
+    {% for post in posts %}
+    <div class="container mb-4 w-50" id="post-container">
+      <div class="card rounded border-secondary shadow">
+        <div class="card-body bg-light justify-content-center">
+          <h6 class="card-text text-muted"><a href="{{ url_for('profile', username=post[3]) }}">u/{{ post[3] }}</a> - {{ post[2] }}</h6>
+          <h5 class="card-title">{{ post[0] }}</h5>
+          {% if post[5] == "Text" %}
+            <h5 class="card-subtitle text-muted">{{ post[1] }}</h5>
+          {% elif post[5] == "Image" %}
+          <div class="image-container">
+            <img id="post-image" src="data:image/png;base64,{{ post[6] }}" alt="Post Image">
+          </div>
+          {% endif %}
+          <div class="like-dislike-container">
+            
+          </div>
+          <div class="like-dislike">
+            <a href="#" class="like-btn" data-postid="{{ post[4] }}">Like</a>
+            <span id="post-likes-dislikes">{{ post[7] - post[8] }}</span>
+            <a href="#" class="dislike-btn" data-postid="{{ post[4] }}">Dislike</a>
+            <a class="btn btn-link" type="button" data-bs-toggle="collapse" data-bs-target="#comment-form-{{ post[4] }}" aria-expanded="false" aria-controls="comment-form-{{ post[4] }}">Comment</a>
+            {% include 'post-modal.html' %}
+            <div class="collapse" id="comment-form-{{ post[4] }}">
+              <form method="POST" action="/comment/{{ post[4] }}">
+                <div class="input-group">
+                  <input type="text" class="form-control" id="comment-input-{{ post[4] }}" name="content">
+                  <button type="submit" class="btn btn-secondary input-group-text" style="background-color: #f1f1f1; border-color: #f1f1f1;">Submit</button>
+                </div>
+                <span id="comment-error-{{ post[4] }}" class="text-danger"></span>
+              </form>
+              {% for comment in comments %}
+                {% if comment[1] == post[4] %}
+                  <div class="card mt-3">
+                    <div class="card-body">
+                      <h6 class="card-subtitle mb-2 text-muted">{{ comment[6] }}</h6>
+                      <p class="card-text">{{ comment[3] }}</p>
+                      <small class="text-muted">{{ comment[4].strftime('%Y-%m-%d %H:%M:%S') }}</small>
+                    </div>
+                  </div>
+                {% endif %}
+              {% endfor %}
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  {% endfor %}  
+  </div>
+
+<style>
+#image-container {
+    /* Set the container to have relative position */
+    position: absolute;
+    }
+      
+#post-image {
+    /* Set the image to have absolute position */
+    position: absolute;
+
+    /* Set the max-width and max-height properties to 100% to make the image resize relative to the container size */
+    max-width: 100%;
+
+    /* Set the width and height properties to auto to maintain the aspect ratio of the image */
+    width: auto;
+    height: auto;
+}
+</style>
+
+<script>
+
+function allowDrop(event) {
+  event.preventDefault();
+}
+
+function dropImage(event) {
+  event.preventDefault();
+  var files = event.dataTransfer.files;
+  var file = files[0];
+
+  // Only process image files.
+  if (!file.type.match('image.*')) {
+    return;
+  }
+
+  var reader = new FileReader();
+  reader.onload = function(e) {
+    var imagePreview = document.getElementById("image-preview");
+    var image = document.createElement("img");
+    image.src = e.target.result;
+    imagePreview.innerHTML = "";
+    imagePreview.appendChild(image);
+  };
+  reader.readAsDataURL(file);
+}
+
+function previewImage(event) {
+  const input = event.target;
+  const previewContainer = document.getElementById("image-preview");
+  previewContainer.innerHTML = ""; // Clear any previous preview
+  
+  if (input.files && input.files[0]) {
+    const reader = new FileReader();
+    reader.onload = function(e) {
+      const img = document.createElement("img");
+      img.src = e.target.result;
+      
+      const deleteBtn = document.createElement("button");
+      deleteBtn.innerHTML = "x";
+      deleteBtn.classList.add("delete-btn");
+      deleteBtn.addEventListener("click", function() {
+        previewContainer.innerHTML = "";
+        input.value = "";
+      });
+      
+      previewContainer.appendChild(img);
+      previewContainer.appendChild(deleteBtn);
+    };
+    
+    reader.readAsDataURL(input.files[0]);
+  }
+}      
+</script>
+
+    <script src="{{ url_for('static', filename='js/likes.js') }}"></script>
+    <!-- Bootstrap JS and jQuery -->
+    <script src="https://code.jquery.com/jquery-3.5.1.slim.min.js" integrity="sha384-DfXdz2htPH0lsSSs5nCTpuj/zy4C+OGpamoFVy38MVBnE+IbbVYUew+OrCXaRkfj" crossorigin="anonymous"></script>
+    <script src="https://cdn.jsdelivr.net/npm/@popperjs/core@2.11.6/dist/umd/popper.min.js" integrity="sha384-oBqDVmMz9ATKxIep9tiCxS/Z9fNfEXiDAYTujMAeBAsjFuCZSmKbSSUnQlmh/jp3" crossorigin="anonymous"></script>
+
+</body>
+</html>
