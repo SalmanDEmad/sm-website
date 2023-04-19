@@ -113,8 +113,7 @@ def register():
         cursor.execute(sql, val)
         db.commit()
 
-        return "User created successfully!"
-    return render_template('signup.html')
+        return render_template("feed.html")
 
 
 @app.route('/c/<community_name>')
@@ -166,14 +165,15 @@ def feed():
     logged_in = session.get('logged_in', False)
     cursor = db.cursor()
     cursor.execute("""
-        SELECT posts.title, posts.content, posts.date_created, users.username, posts.post_id, posts.post_type, posts.image,
-            COALESCE(SUM(CASE WHEN likes.post_id = posts.post_id THEN 1 ELSE 0 END), 0) AS num_likes,
-            COALESCE(SUM(CASE WHEN dislikes.post_id = posts.post_id THEN 1 ELSE 0 END), 0) AS num_dislikes
-        FROM posts
-        JOIN users ON posts.user_id = users.user_id
-        LEFT JOIN likes ON likes.post_id = posts.post_id
-        LEFT JOIN dislikes ON dislikes.post_id = posts.post_id
-        GROUP BY posts.post_id
+                    SELECT posts.title, posts.content, posts.date_created, users.username, posts.post_id, posts.post_type, posts.image,
+                        COALESCE(SUM(CASE WHEN likes.post_id = posts.post_id THEN 1 ELSE 0 END), 0) AS num_likes,
+                        COALESCE(SUM(CASE WHEN dislikes.post_id = posts.post_id THEN 1 ELSE 0 END), 0) AS num_dislikes
+                    FROM posts
+                    JOIN users ON posts.user_id = users.user_id
+                    LEFT JOIN likes ON likes.post_id = posts.post_id
+                    LEFT JOIN dislikes ON dislikes.post_id = posts.post_id
+                    GROUP BY posts.title, posts.content, posts.date_created, users.username, posts.post_id, posts.post_type, posts.image
+
     """)
 
     posts = [
@@ -197,6 +197,29 @@ def feed():
 
     return render_template('feed.html', posts=posts, comments=comments, logged_in=logged_in, username=username)
 
+# This route handles the POST request for deleting a post
+@app.route('/delete-post', methods=['POST'])
+def delete_post():
+    # Get the post ID from the request body
+    post_id = request.json.get('post_id')
+
+    # Delete data from the likes table
+    cursor.execute('DELETE FROM likes WHERE post_id = %s', (post_id,))
+
+    # Delete data from the dislikes table
+    cursor.execute('DELETE FROM dislikes WHERE post_id = %s', (post_id,))
+
+    # Delete data from the shares table
+    cursor.execute('DELETE FROM shares WHERE post_id = %s', (post_id,))
+
+    # Delete the post from the posts table
+    cursor.execute('DELETE FROM posts WHERE post_id = %s', (post_id,))
+
+    # Commit the changes to the database
+    db.commit()
+
+    # Return a JSON response to indicate success
+    return jsonify({'success': True})
 
 @app.route('/like', methods=['POST'])
 def like():
@@ -351,9 +374,11 @@ def profile(username):
     if session.get('logged_in'):
         session['logged_in'] = True
         print("okbubbyretarb")
+
     cursor = db.cursor()
     cursor.execute("SELECT * FROM users WHERE username = %s", (username,))
     user = cursor.fetchone()
+
     if user:
         profile_data = user[7]
         profile_data_base64 = base64.b64encode(profile_data).decode('utf-8') if profile_data else None
@@ -361,9 +386,37 @@ def profile(username):
         background_data = user[8]
         background_data_base64 = base64.b64encode(background_data).decode('utf-8') if background_data else None
 
-        return render_template('profile.html', username=user[1].capitalize(), first_name=user[4], last_name=user[5], bio=user[6], profile_pic=profile_data_base64, background_pic=background_data_base64)
+        cursor.execute("""
+            SELECT posts.title, posts.content, posts.date_created, users.username, posts.post_id, posts.post_type, posts.image,
+                COALESCE(SUM(CASE WHEN likes.post_id = posts.post_id THEN 1 ELSE 0 END), 0) AS num_likes,
+                COALESCE(SUM(CASE WHEN dislikes.post_id = posts.post_id THEN 1 ELSE 0 END), 0) AS num_dislikes
+            FROM posts
+            JOIN users ON posts.user_id = users.user_id
+            LEFT JOIN likes ON likes.post_id = posts.post_id
+            LEFT JOIN dislikes ON dislikes.post_id = posts.post_id
+            WHERE posts.user_id = (SELECT user_id FROM users WHERE username = %s)
+            GROUP BY posts.title, posts.content, posts.date_created, users.username, posts.post_id, posts.post_type, posts.image
+            ORDER BY posts.date_created DESC
+        """, (username,))
+        posts = [
+            (
+                title, 
+                content, 
+                date_created, 
+                username, 
+                post_id, 
+                post_type, 
+                base64.b64encode(image).decode('utf-8') if image is not None else None, 
+                num_likes, 
+                num_dislikes
+            )
+            for title, content, date_created, username, post_id, post_type, image, num_likes, num_dislikes in cursor.fetchall()
+        ]
+
+        return render_template('profile.html', username=user[1].capitalize(), first_name=user[4], last_name=user[5], bio=user[6], profile_pic=profile_data_base64, background_pic=background_data_base64, posts=posts)
     else:
         return "User not found"
+
 
 @app.route('/c/<community_name>')
 def community_filtered(community_name):
@@ -403,7 +456,13 @@ def validatelogin():
         cursor.execute(sql, val)
         user = cursor.fetchone()
         cursor.execute("SELECT user_id FROM users WHERE username=%s AND password=%s", (username, password))
-        user_id = cursor.fetchone()[0]
+        result = cursor.fetchone()
+
+        if result is not None:
+            user_id = result[0]
+        else:
+            return "Invalid credentials"
+
 
         if user:
             # User exists and credentials are correct
