@@ -23,6 +23,8 @@ db_user = os.environ.get('DB_USER')
 db_password = os.environ.get('DB_PASSWORD')
 db_name = os.environ.get('DB_NAME')
 
+print("Host is " + db_host)
+
 print(db_user)
 
 # MySQL database connection
