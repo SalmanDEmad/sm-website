@@ -6,6 +6,7 @@ import base64
 from flask import request, jsonify
 from jinja2 import Template
 from passlib.hash import sha256_crypt
+import os
 
 from flask_session import Session
 
