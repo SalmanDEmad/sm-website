@@ -1,12 +1,18 @@
-from flask import Flask, render_template, request, session, redirect, url_for, jsonify
+from flask import Flask, render_template, request, session, redirect, url_for, jsonify, flash
 import mysql.connector
 from datetime import datetime
 import secrets
 import base64
 from flask import request, jsonify
 from jinja2 import Template
+from passlib.hash import sha256_crypt
+
+from flask_session import Session
 
 app = Flask(__name__, static_folder='static')
+
+app.config['SESSION_TYPE'] = 'filesystem'  # You can choose a different session type as needed
+Session(app)
 
 app.secret_key = 'troll'
 
@@ -15,76 +21,64 @@ db = mysql.connector.connect(
     host="localhost",
     user="root",
     password="root",
+    database="social_media"
 )
 
 cursor = db.cursor()
-# create the database if it does not exist
-cursor.execute("CREATE DATABASE IF NOT EXISTS social_media")
-cursor.execute("USE social_media")
 
-@app.route('/')
-def run():
-    # create a cursor object
-    cursor = db.cursor()
+def session_print():
+    for user in session:
+        print("here is list of users " + user)
 
-    # execute the CREATE TABLE queries
-    queries = [
-    "CREATE TABLE IF NOT EXISTS `comments` (comment_id char(8) NOT NULL,user_id int NOT NULL,post_id char(8),content text,date_created datetime DEFAULT CURRENT_TIMESTAMP,date_modified datetime DEFAULT CURRENT_TIMESTAMP) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;",
-    "CREATE TABLE IF NOT EXISTS `communities` (community_id char(10) NOT NULL, name varchar(30), description varchar(500), PRIMARY KEY (community_id), INDEX (community_id)) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;",
-    "CREATE TABLE IF NOT EXISTS `dislikes` (dislike_id int NOT NULL,user_id int NOT NULL,post_id char(10),date_created datetime DEFAULT CURRENT_TIMESTAMP) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;",
-    "CREATE TABLE IF NOT EXISTS `followers` (follower_id int NOT NULL,user_id int NOT NULL,follower_user_id int NOT NULL) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;",
-    "CREATE TABLE IF NOT EXISTS `likes` (like_id int NOT NULL,user_id int NOT NULL,post_id char(8),date_created datetime DEFAULT CURRENT_TIMESTAMP) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;",
-    "CREATE TABLE IF NOT EXISTS `notifications` (notification_id int NOT NULL,user_id int NOT NULL,type varchar(50),content text,date_created datetime DEFAULT CURRENT_TIMESTAMP) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;",
-    "CREATE TABLE IF NOT EXISTS `posts` (post_id char(8) NOT NULL,user_id int NOT NULL,content text,image longblob,date_created datetime DEFAULT CURRENT_TIMESTAMP,post_type varchar(255) NOT NULL,title varchar(255) NOT NULL,post_date datetime NOT NULL,community_id char(10),FOREIGN KEY (community_id) REFERENCES communities (community_id)) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;",
-    "CREATE TABLE IF NOT EXISTS `shares` (share_id int NOT NULL,user_id int NOT NULL,post_id char(8),shared_to_user_id int NOT NULL,date_created datetime DEFAULT CURRENT_TIMESTAMP) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;",
-    "CREATE TABLE IF NOT EXISTS `users` (user_id int PRIMARY KEY NOT NULL,username varchar(50) NOT NULL,email varchar(50) NOT NULL,password varchar(255) NOT NULL,first_name varchar(50),last_name varchar(50),bio text,profile_pic longblob,background_pic longblob) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;",
-    "CREATE TABLE IF NOT EXISTS `subscriptions` (user_id int,community_id char(10), FOREIGN KEY (user_id) REFERENCES users (user_id) ON DELETE CASCADE ON UPDATE CASCADE, FOREIGN KEY (community_id) REFERENCES communities (community_id) ON DELETE CASCADE ON UPDATE CASCADE) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;",
-    ]
-
-    for query in queries:
-        cursor.execute(query)
-        cursor.close()
-        cursor = db.cursor()
-
-
-    # commit changes and close the connection
-    db.commit()
-
-    logged_in = session.get('logged_in', False)
-    return render_template('home.html', logged_in=logged_in)
-
-
-@app.route("/home")
+@app.route("/")
 def home():
+    session_print()
     logged_in = session.get('logged_in', False)
     return render_template('home.html', logged_in=logged_in)
 
-@app.route("/base")
-def base():
-    return render_template("base.html")
 
-@app.route("/login")
+@app.route('/login', methods=['GET', 'POST'])
 def login():
-    return render_template("login.html")
+    if request.method == 'POST':
+        username = request.form['username']
+        password = request.form['password']
+
+        cursor = db.cursor()
+        cursor.execute("SELECT * FROM users WHERE username = %s", (username,))
+        user = cursor.fetchone()
+
+        if user and sha256_crypt.verify(password, user[3]):  # Verify the hashed password
+            session['user_id'] = user[0]
+            session['username'] = user[1]  # Assuming user[1] contains the username
+            session.permanent = True
+            session['logged_in'] = True
+            flash('Logged in successfully!', 'success')
+
+            session_print()
+
+            return redirect(url_for('home'))
+        else:
+            flash('Login failed. Please check your credentials.', 'danger')
+
+    return render_template('login.html')
 
 @app.route('/logout')
 def logout():
     session.clear()
     return redirect(url_for('home'))
 
-@app.route("/signup")
+@app.route('/signup', methods=['GET', 'POST'])
 def signup():
-    return render_template("signup.html")
-
-@app.route('/register', methods=['GET', 'POST'])
-def register():
     if request.method == 'POST':
         username = request.form['username']
         email = request.form['email']
-        password = request.form['password']
+        raw_password = request.form['password']
         first_name = request.form['first_name']
         last_name = request.form['last_name']
         bio = request.form['bio']
+
+        # Hash the password using sha256_crypt from passlib
+        hashed_password = sha256_crypt.using(rounds=1000).hash(raw_password)
 
         # Read the binary data from the profile_pic.png file
         with open('profile_pic.png', 'rb') as f:
@@ -103,17 +97,18 @@ def register():
         if user_count == 0:
             # If no users exist, insert the first user with user_id set to 1
             sql = "INSERT INTO Users (user_id, username, email, password, first_name, last_name, bio, profile_pic, background_pic) VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s)"
-            val = (1, username, email, password, first_name, last_name, bio, profile_pic_data, background_pic_data)
+            val = (1, username, email, hashed_password, first_name, last_name, bio, profile_pic_data, background_pic_data)
         else:
             # If users exist, insert a new user without providing the user_id
             sql = "INSERT INTO Users (username, email, password, first_name, last_name, bio, profile_pic, background_pic) VALUES (%s, %s, %s, %s, %s, %s, %s, %s)"
-            val = (username, email, password, first_name, last_name, bio, profile_pic_data, background_pic_data)
-        (username, email, password, first_name, last_name, bio, profile_pic_data, background_pic_data)
+            val = (username, email, hashed_password, first_name, last_name, bio, profile_pic_data, background_pic_data)
 
         cursor.execute(sql, val)
         db.commit()
 
         return render_template("feed.html")
+    else: 
+        return render_template("signup.html")
 
 
 @app.route('/c/<community_name>')
@@ -165,16 +160,22 @@ def feed():
     logged_in = session.get('logged_in', False)
     cursor = db.cursor()
     cursor.execute("""
-                    SELECT posts.title, posts.content, posts.date_created, users.username, posts.post_id, posts.post_type, posts.image,
-                        COALESCE(SUM(CASE WHEN likes.post_id = posts.post_id THEN 1 ELSE 0 END), 0) AS num_likes,
-                        COALESCE(SUM(CASE WHEN dislikes.post_id = posts.post_id THEN 1 ELSE 0 END), 0) AS num_dislikes
-                    FROM posts
-                    JOIN users ON posts.user_id = users.user_id
-                    LEFT JOIN likes ON likes.post_id = posts.post_id
-                    LEFT JOIN dislikes ON dislikes.post_id = posts.post_id
-                    GROUP BY posts.title, posts.content, posts.date_created, users.username, posts.post_id, posts.post_type, posts.image
-
-    """)
+                    SELECT
+    p.title, p.content, p.date_created, u.username, p.post_id, p.post_type, p.image,
+    COALESCE(SUM(l.post_id IS NOT NULL), 0) AS num_likes,
+    COALESCE(SUM(d.post_id IS NOT NULL), 0) AS num_dislikes
+FROM
+    posts p
+        JOIN
+    users u ON p.user_id = u.user_id
+        LEFT JOIN
+    likes l ON l.post_id = p.post_id
+        LEFT JOIN
+    dislikes d ON d.post_id = p.post_id
+GROUP BY
+    1, 2, 3, 4, 5, 6, 7
+ORDER BY
+    p.date_created DESC;""")
 
     posts = [
         (
@@ -302,24 +303,20 @@ def dislike():
     # add likes and dislikes to JSON response
     return jsonify({'success': True, 'message': 'Post liked successfully', 'likes': result[0], 'dislikes': result[1]})
 
-
-
-
 @app.route('/createpost', methods=['POST'])
 def create_post():
     username = session.get('username', None)
     if username is None:
         return redirect('/login')
 
-    # Get data from form submission
-    text_title = request.form['text-title']
-    image_title = request.form['image-title']
-    post_type = request.form['post_type']
+    post_type = request.form['post_type']  # Access the value of the hidden input 'post_type'
+    
     posting_time = datetime.now().strftime('%Y-%m-%d %H:%M:%S')
     post_date = datetime.now().strftime('%Y-%m-%d')
     user_id = session['user_id']
     
     if post_type == 'Text':
+        text_title = request.form['text-title']
         content = request.form['content']
         # Insert post into database
         cursor = db.cursor()
@@ -328,8 +325,10 @@ def create_post():
         cursor.execute(sql, val)
         db.commit()
 
-    elif post_type == 'Image':
+    elif post_type == 'Media':
+        image_title = request.form['image-title']
         image_file = request.files['image-video-file']
+        print(image_file)
         image_file_data = image_file.read()
         # Insert post into database
         cursor = db.cursor()
@@ -443,40 +442,6 @@ def create_community():
         db.commit()
         return redirect(url_for('community', community_name=community_name))
     return redirect(url_for('community', community_name=community_name))
-
-@app.route('/validatelogin', methods=['GET', 'POST'])
-def validatelogin():
-    if request.method == 'POST':
-        username = request.form['username']
-        password = request.form['password']
-
-        cursor = db.cursor()
-        sql = "SELECT * FROM users WHERE username=%s AND password=%s"
-        val = (username, password)
-        cursor.execute(sql, val)
-        user = cursor.fetchone()
-        cursor.execute("SELECT user_id FROM users WHERE username=%s AND password=%s", (username, password))
-        result = cursor.fetchone()
-
-        if result is not None:
-            user_id = result[0]
-        else:
-            return "Invalid credentials"
-
-
-        if user:
-            # User exists and credentials are correct
-            # You can set a session variable or cookie to keep the user logged in
-            # Redirect the user to the home page or another protected page
-            session['logged_in'] = True
-            session['username'] = username
-            session['user_id'] = user_id
-            return redirect(url_for('home'))
-        else:
-            # User does not exist or credentials are incorrect
-            # Redirect the user to the login page with an error message
-            return "Invalid credentials"
-    return render_template('login.html')
 
 if __name__ == '__main__':
     app.run(debug=True)

@@ -1,0 +1,20 @@
+.btn {
+    --bs-btn-border-radius: 23px;
+}
+.btn-primary {
+    --bs-btn-color: #fff;
+    --bs-btn-bg: #9400D3; /* Violet color */
+    --bs-btn-border-color: #9400D3; /* Violet color */
+    --bs-btn-hover-color: #fff;
+    --bs-btn-hover-bg: #7A0082; /* Darker shade of violet for hover */
+    --bs-btn-hover-border-color: #6E0076; /* Darker shade of violet for hover */
+    --bs-btn-focus-shadow-rgb: 148, 0, 211; /* RGB color for focus shadow */
+    --bs-btn-active-color: #fff;
+    --bs-btn-active-bg: #6E0076; /* Darker shade of violet for active state */
+    --bs-btn-active-border-color: #68006F; /* Darker shade of violet for active state */
+    --bs-btn-active-shadow: inset 0 3px 5px rgba(0, 0, 0, 0.125);
+    --bs-btn-disabled-color: #fff;
+    --bs-btn-disabled-bg: #9400D3; /* Violet color for disabled state */
+    --bs-btn-disabled-border-color: #9400D3; /* Violet color for disabled state */
+}
+
