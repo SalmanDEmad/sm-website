@@ -16,12 +16,19 @@ Session(app)
 
 app.secret_key = 'troll'
 
+# Retrieve database configuration from environment variables
+db_host = os.environ.get('DB_HOST', 'localhost')
+db_user = os.environ.get('DB_USER', 'root')
+db_password = os.environ.get('DB_PASSWORD', 'root')
+db_name = os.environ.get('DB_NAME', 'social_media')
+
 # MySQL database connection
 db = mysql.connector.connect(
-    host="localhost",
-    user="root",
-    password="root",
-    database="social_media"
+    host = db_host,
+    user = db_user,
+    password = db_password,
+    database = db_name,
+    auth_plugin='mysql_native_password'
 )
 
 cursor = db.cursor()
