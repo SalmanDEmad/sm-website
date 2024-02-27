@@ -100,16 +100,16 @@ def signup():
         cursor = db.cursor()
 
         # Check if there are any existing users in the table
-        cursor.execute("SELECT COUNT(*) FROM Users")
+        cursor.execute("SELECT COUNT(*) FROM users")
         user_count = cursor.fetchone()[0]
 
         if user_count == 0:
             # If no users exist, insert the first user with user_id set to 1
-            sql = "INSERT INTO Users (user_id, username, email, password, first_name, last_name, bio, profile_pic, background_pic) VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s)"
+            sql = "INSERT INTO users (user_id, username, email, password, first_name, last_name, bio, profile_pic, background_pic) VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s)"
             val = (1, username, email, hashed_password, first_name, last_name, bio, profile_pic_data, background_pic_data)
         else:
             # If users exist, insert a new user without providing the user_id
-            sql = "INSERT INTO Users (username, email, password, first_name, last_name, bio, profile_pic, background_pic) VALUES (%s, %s, %s, %s, %s, %s, %s, %s)"
+            sql = "INSERT INTO users (username, email, password, first_name, last_name, bio, profile_pic, background_pic) VALUES (%s, %s, %s, %s, %s, %s, %s, %s)"
             val = (username, email, hashed_password, first_name, last_name, bio, profile_pic_data, background_pic_data)
 
         cursor.execute(sql, val)
