@@ -23,6 +23,8 @@ db_user = os.environ.get('DB_USER', 'root')
 db_password = os.environ.get('DB_PASSWORD', 'root')
 db_name = os.environ.get('DB_NAME', 'social_media')
 
+print(db_user)
+
 # MySQL database connection
 db = mysql.connector.connect(
     host = db_host,
