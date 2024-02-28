@@ -84,9 +84,17 @@ def home():
     # Convert the date object to a string
     latest_update_date_str = latest_update[0].strftime('%Y-%m-%d')
 
-    user = session.get('username')
-    if user:
-        response = cookie_check(user)
+    user = session
+    print(session)
+
+    user_id_cookie = request.cookies.get('user_id')
+
+    user_id = session.get('user_id')
+    username = session.get('username')
+    user_data = [user_id, username]
+
+    if user_id_cookie is None:
+        response = cookie_check(user_data)
         return response
 
     # Check if the 'update_date' cookie exists and if its value is less than the latest update
@@ -116,17 +124,14 @@ def cookie_check(user):
     username_cookie = request.cookies.get('username')
     updates_cookie = request.cookies.get('updates')
 
-    # Set cookies only if they don't exist
-    if user_id_cookie is None:
-        response = make_response(redirect(url_for('home')))
-        response.set_cookie('user_id', str(user[0]))
-
     if username_cookie is None:
         response = make_response(redirect(url_for('home')))
         response.set_cookie('username', user[1])
 
     if updates_cookie is None:
         response = make_response(redirect(url_for('home')))
+
+        response.set_cookie('user_id', str(user[0]))
         
         # Set 'update_cookie' cookie
         response.set_cookie('updated_cookie', 'false')
