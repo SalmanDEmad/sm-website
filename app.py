@@ -20,10 +20,10 @@ Session(app)
 app.secret_key = 'troll'
 
 # Retrieve database configuration from environment variables
-db_host = os.environ.get('DB_HOST', 'localhost')
-db_user = os.environ.get('DB_USER', 'root')
-db_password = os.environ.get('DB_PASSWORD', 'root')
-db_name = os.environ.get('DB_NAME', 'social_media')
+db_host = os.getenv('DB_HOST', 'localhost')
+db_user = os.getenv('DB_USER', 'root')
+db_password = os.getenv('DB_PASSWORD', 'root')
+db_name = os.getenv('DB_NAME', 'social_media')
 
 
 # MySQL database connection
