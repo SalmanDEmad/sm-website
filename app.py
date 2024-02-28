@@ -322,7 +322,11 @@ def feed():
         for title, content, date_created, username, post_id, post_type, image, num_likes, num_dislikes in cursor.fetchall()
     ]
 
-    return render_template('feed.html', posts=posts, logged_in=logged_in, username=username)
+    cursor.execute("select * from comments")
+    comments = cursor.fetchall()
+    print(comments)
+
+    return render_template('feed.html', posts=posts, logged_in=logged_in, username=username, comments = comments)
 
 
 # This route handles the POST request for deleting a post
