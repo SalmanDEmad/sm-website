@@ -5,4 +5,4 @@ public/
 tmp/
 .htaccess
 rotten-files/
-flask-session/
+flask_session/

@@ -4,7 +4,21 @@
 {% block title %}Dashboard - My App{% endblock %}
 
 {% block content %}
-    <h1>Welcome to the Dashboard</h1>
-    <p>This is the main content of your dashboard.</p>
-    <!-- Add more dashboard-specific content here -->
+<div class="container">
+    <h1>Add Update</h1>
+
+    <form method="post" action="/add_update" class="mt-4">
+        <div class="mb-3">
+            <label for="update_title" class="form-label">Update Title:</label>
+            <input type="text" class="form-control" id="update_title" name="update_title" placeholder="Update Title" required>
+        </div>
+
+        <div class="mb-3">
+            <label for="update_contents" class="form-label">Update Contents:</label>
+            <textarea class="form-control" id="update_contents" name="update_contents" placeholder="Update Details" rows="4" required></textarea>
+        </div>
+
+        <button type="submit" class="btn btn-primary">Add Update</button>
+    </form>
+</div>
 {% endblock %}

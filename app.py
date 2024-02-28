@@ -41,11 +41,61 @@ def session_print():
     for user in session:
         print("here is list of users " + user)
 
+def get_latest_update():
+    global cursor
+
+    # Fetch the latest update from the updates table
+    query = "SELECT update_date, update_time, update_title, update_contents FROM updates ORDER BY update_date DESC, update_time DESC LIMIT 1"
+    cursor.execute(query)
+    latest_update = cursor.fetchone()
+    
+    print(latest_update)
+
+    return latest_update
+
+def update_cookie_and_database():
+    global cursor
+
+    # Fetch the latest update from the database
+    latest_update = get_latest_update()
+
+    # Convert the date object to a string
+    latest_update_date_str = latest_update[0].strftime('%Y-%m-%d')
+
+    # Update the 'update_date' and 'update_time' cookies
+    response = make_response(render_template('home.html', updated_cookie='false', latest_update=latest_update))
+    response.set_cookie('update_date', latest_update_date_str)
+    response.set_cookie('update_time', latest_update[1])
+
+    # Set 'updated_cookie' to 'false'
+    response.set_cookie('updated_cookie', 'false')
+
+    return response
+
 @app.route("/")
 def home():
-    session_print()
-    logged_in = session.get('logged_in', False)
-    return render_template('home.html', logged_in=logged_in)
+    global cursor
+
+    # Check if cookies exist
+    updated_cookie = request.cookies.get('updated_cookie', 'false')
+    update_date_cookie = request.cookies.get('update_date')
+    
+    # Get the latest update from the database
+    latest_update = get_latest_update()
+    print(latest_update)
+
+    # Convert the date object to a string
+    latest_update_date_str = latest_update[0].strftime('%Y-%m-%d')
+
+    # Check if the 'update_date' cookie exists and if its value is less than the latest update
+    if (updated_cookie == 'false' and
+            update_date_cookie and
+            update_date_cookie < latest_update_date_str):
+        # Update the cookies and set 'updated_cookie' to 'false'
+        return update_cookie_and_database()
+    else:
+        # Cookies are up-to-date, set 'updated_cookie' to 'false'
+        return render_template('home.html', updated_cookie='false', latest_update=latest_update)
 
 def is_admin(username):
     # Check if the user has the 'admin' role in the database
@@ -82,7 +132,29 @@ def cookie_check(user):
         # Set 'update_date' cookie
         response.set_cookie('update_date', "None")
 
+        # Set 'update_time' cookie
+        response.set_cookie('update_time', "None")
+
     return response
+
+@app.route('/add_update', methods=['POST'])
+def add_update():
+    # Get data from the form
+    update_title = request.form['update_title']
+    update_contents = request.form['update_contents']
+
+    # Generate current date in dd/mm/yyyy, hh:mm format
+    update_date = datetime.now().strftime('%Y-%m-%d')
+    update_time = datetime.now().strftime('%H:%M')
+
+    # Insert data into the updates table
+    query = "INSERT INTO updates (update_title, update_contents, update_date, update_time) VALUES (%s, %s, %s, %s)"
+    cursor.execute(query, (update_title, update_contents, update_date, update_time))
+
+    # Commit changes and close the connection
+    db.commit()
+
+    return render_template('dashboard.html')
 
 @app.route('/dashboard')
 def dashboard():

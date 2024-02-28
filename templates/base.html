@@ -31,8 +31,11 @@
             <ul class="navbar-nav ml-auto">
                 {% if session.logged_in %}
                     <li class="nav-item">
-                        <a class="nav-link" href="#" data-bs-toggle="modal" data-bs-target="#postModal">Post</a>
+                        <a class="nav-link" href="#" data-bs-toggle="modal" data-bs-target="#createCommunitytModal">Make community</a>
                     </li>
+                    <li class="nav-item">
+                      <a class="nav-link" href="#" data-bs-toggle="modal" data-bs-target="#postModal">Post</a>
+                  </li>
                 {% else %}
                     <!-- Display the Log In button only if not logged in -->
                     <li class="nav-item">
@@ -44,32 +47,34 @@
     </div>
 </nav>
 
-      
-      <div class="modal fade" id="createCommunityModal" tabindex="-1" aria-labelledby="createCommunityModalLabel" aria-hidden="true">
-        <div class="modal-dialog">
-          <div class="modal-content">
-            <div class="modal-header">
-              <h5 class="modal-title" id="createCommunityModalLabel">Create Community</h5>
-              <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
-            </div>
-            <div class="modal-body">
-              <form method="POST" action="/create_community">
-                <div class="mb-3">
-                  <label for="communityName" class="form-label">Community Name</label>
-                  <input type="text" class="form-control" id="communityName" name="community_name" required>
-                </div>
-                <div class="mb-3">
-                  <label for="communityDesc" class="form-label">Description</label>
-                  <textarea class="form-control" id="communityDesc" name="description" rows="3"></textarea>
-                </div>
-                <button type="submit" class="btn btn-primary">Create</button>
-              </form>
-            </div>
-          </div>
-        </div>
+{% block content %}{% endblock %}
+
+<!-- Modal for creating communities-->
+<div class="modal fade" id="createCommunityModal" tabindex="-1" aria-labelledby="createCommunityModalLabel" aria-hidden="true">
+  <div class="modal-dialog">
+    <div class="modal-content">
+      <div class="modal-header">
+        <h5 class="modal-title" id="createCommunityModalLabel">Create Community</h5>
+        <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
       </div>
+      <div class="modal-body">
+        <form method="POST" action="/create_community">
+          <div class="mb-3">
+            <label for="communityName" class="form-label">Community Name</label>
+            <input type="text" class="form-control" id="communityName" name="community_name" required>
+          </div>
+          <div class="mb-3">
+            <label for="communityDesc" class="form-label">Description</label>
+            <textarea class="form-control" id="communityDesc" name="description" rows="3"></textarea>
+          </div>
+          <button type="submit" class="btn btn-primary">Create</button>
+        </form>
+      </div>
+    </div>
+  </div>
+</div>
       
-<!-- Modal -->
+<!-- Modal for making posts -->
 <div class="modal fade" id="postModal" tabindex="-1" aria-labelledby="postModalLabel" aria-hidden="true">
   <div class="modal-dialog">
     <div class="modal-content">
@@ -337,9 +342,5 @@
         });
     });
 </script>
-
-<div class="container">
-    {% block content %}{% endblock %}
-</div>
 
   <script src="{{ url_for('static', filename='js/base.js') }}"></script>
