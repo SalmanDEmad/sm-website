@@ -38,23 +38,20 @@ db = mysql.connector.connect(
 cursor = db.cursor()
 
 def session_print():
+    
     for user in session:
-        print("here is list of users " + user)
+        print(user)
 
 def get_latest_update():
-    global cursor
 
     # Fetch the latest update from the updates table
     query = "SELECT update_date, update_time, update_title, update_contents FROM updates ORDER BY update_date DESC, update_time DESC LIMIT 1"
     cursor.execute(query)
     latest_update = cursor.fetchone()
-    
-    print(latest_update)
 
     return latest_update
 
 def update_cookie_and_database():
-    global cursor
 
     # Fetch the latest update from the database
     latest_update = get_latest_update()
@@ -74,7 +71,7 @@ def update_cookie_and_database():
 
 @app.route("/")
 def home():
-    global cursor
+    session_print()
 
     # Check if cookies exist
     updated_cookie = request.cookies.get('updated_cookie', 'false')
@@ -324,7 +321,19 @@ def feed():
 
     cursor.execute("select * from comments")
     comments = cursor.fetchall()
-    print(comments)
+
+    for i, comment in enumerate(comments):
+        user_id = comment[1]
+
+        # Fetch the username from the 'users' table
+        cursor.execute("SELECT username FROM users WHERE user_id = %s", (user_id,))
+        user_data = cursor.fetchone()
+
+        # Check if a matching user is found
+        if user_data:
+            username = user_data[0]
+            # Update the second element of the tuple with the username
+            comments[i] = (comment[0], username, *comment[2:])
 
     return render_template('feed.html', posts=posts, logged_in=logged_in, username=username, comments = comments)
 
