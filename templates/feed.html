@@ -16,7 +16,7 @@
 </style>
     {% include 'base.html' %}
     {% for post in posts %}
-    <div class="container mx-auto" style="width: 40vw">
+    <div id="custom-container" class="container col-lg-5 col-md-8 col-12 mx-auto">
       <div class="card post-container rounded border-secondary shadow" style="margin-top: 80px;">
         <div class="card-header bg-light">
           <h5 class="card-title">{{ post[0] }}</h5>
@@ -53,14 +53,31 @@
           
         </div>
         <div class="collapse mt-3" id="comment-form-{{ post[4] }}">
-          <form>
-            <div class="input-group mb-3">
-              <input type="text" class="form-control" id="comment-input-{{ post[4] }}" name="content">
-              <button type="submit" class="btn btn-secondary input-group-text" style="background-color: #f1f1f1; border-color: #f1f1f1;">Submit</button>
+          <div class="comment-input-container">
+            <form action="{{ url_for('create_comment', post_id=post[4]) }}" method="POST">
+              <div class="input-group mb-3">
+                <input type="text" class="form-control" placeholder="comment" id="comment-input-{{ post[4] }}" name="content">
+                <button type="submit" class="btn btn-secondary input-group-text">Submit</button>
+              </div>
+              <span id="comment-error-{{ post[4] }}" class="text-danger"></span>
+            </form>
+          </div>
+          <div class="container comment-container">
+            {% for comment in comments %}
+            <div class="card mb-2">
+                <div class="card-body">
+                    <p class="card-text">{{ comment['content'] }}</p>
+                    <p class="card-text">By: {{ comment['username'] }}</p>
+                    <p class="card-text">Posted on: {{ comment['date_created'] }}</p>
+                    <p class="card-text">Last Modified: {{ comment['date_modified'] }}</p>
+                </div>
             </div>
-            <span id="comment-error-{{ post[4] }}" class="text-danger"></span>
-          </form>
+        {% endfor %}
+        
         </div>
+        
+        </div>
+
     </div>
     
     <!-- Delete confirmation modal -->

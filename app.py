@@ -1,4 +1,6 @@
-from flask import Flask, render_template, request, session, redirect, url_for, jsonify, flash
+from flask import Flask, render_template, make_response, request, session, redirect, url_for, jsonify, flash
+import json
+
 import mysql.connector
 from datetime import datetime
 import secrets
@@ -45,6 +47,56 @@ def home():
     logged_in = session.get('logged_in', False)
     return render_template('home.html', logged_in=logged_in)
 
+def is_admin(username):
+    # Check if the user has the 'admin' role in the database
+    # Execute the SQL query
+    query = "SELECT role FROM users WHERE username = %s"
+    cursor.execute(query, (username,))
+    result = cursor.fetchone()
+
+    # Check if the role is 'admin'
+    return result and result[0] == 'admin'
+
+
+def cookie_check(user):
+    # Check if cookies already exist
+    user_id_cookie = request.cookies.get('user_id')
+    username_cookie = request.cookies.get('username')
+    updates_cookie = request.cookies.get('updates')
+
+    # Set cookies only if they don't exist
+    if user_id_cookie is None:
+        response = make_response(redirect(url_for('home')))
+        response.set_cookie('user_id', str(user[0]))
+
+    if username_cookie is None:
+        response = make_response(redirect(url_for('home')))
+        response.set_cookie('username', user[1])
+
+    if updates_cookie is None:
+        response = make_response(redirect(url_for('home')))
+        
+        # Set 'update_cookie' cookie
+        response.set_cookie('updated_cookie', 'false')
+        
+        # Set 'update_date' cookie
+        response.set_cookie('update_date', "None")
+
+    return response
+
+@app.route('/dashboard')
+def dashboard():
+    # Check if the user is logged in
+    if 'username' not in session:
+        return redirect(url_for('login'))
+
+    # Check if the user has the 'admin' role in the database
+    if is_admin(session['username']):
+        # Render the dashboard template
+        return render_template('dashboard.html')
+    else:
+        # Return an error message or redirect to a different page
+        return "Error: Access denied. You are not an admin."
 
 @app.route('/login', methods=['GET', 'POST'])
 def login():
@@ -57,6 +109,7 @@ def login():
         user = cursor.fetchone()
 
         if user and sha256_crypt.verify(password, user[3]):  # Verify the hashed password
+            response = cookie_check(user)
             session['user_id'] = user[0]
             session['username'] = user[1]  # Assuming user[1] contains the username
             session.permanent = True
@@ -65,7 +118,7 @@ def login():
 
             session_print()
 
-            return redirect(url_for('home'))
+            return response
         else:
             flash('Login failed. Please check your credentials.', 'danger')
 
@@ -161,30 +214,26 @@ def community(community_name):
     cursor.close()
     return render_template('community.html', posts=posts, comments=comments)
 
-
-
 @app.route('/feed')
 def feed():
     username = session.get('username', None)
     logged_in = session.get('logged_in', False)
+
     cursor = db.cursor()
     cursor.execute("""
-                    SELECT
-    p.title, p.content, p.date_created, u.username, p.post_id, p.post_type, p.image,
-    COALESCE(SUM(l.post_id IS NOT NULL), 0) AS num_likes,
-    COALESCE(SUM(d.post_id IS NOT NULL), 0) AS num_dislikes
-FROM
-    posts p
-        JOIN
-    users u ON p.user_id = u.user_id
-        LEFT JOIN
-    likes l ON l.post_id = p.post_id
-        LEFT JOIN
-    dislikes d ON d.post_id = p.post_id
-GROUP BY
-    1, 2, 3, 4, 5, 6, 7
-ORDER BY
-    p.date_created DESC;""")
+        SELECT
+            p.title, p.content, p.date_created, u.username, p.post_id, p.post_type, p.image,
+            COALESCE(SUM(l.post_id IS NOT NULL), 0) AS num_likes,
+            COALESCE(SUM(d.post_id IS NOT NULL), 0) AS num_dislikes
+        FROM
+            posts p
+            JOIN users u ON p.user_id = u.user_id
+            LEFT JOIN likes l ON l.post_id = p.post_id
+            LEFT JOIN dislikes d ON d.post_id = p.post_id
+        GROUP BY
+            1, 2, 3, 4, 5, 6, 7
+        ORDER BY
+            p.date_created DESC;""")
 
     posts = [
         (
@@ -196,16 +245,13 @@ ORDER BY
             post_type, 
             base64.b64encode(image).decode('utf-8') if image is not None else None, 
             num_likes, 
-            num_dislikes
+            num_dislikes  # Assuming you have a get_comments_for_post function
         )
         for title, content, date_created, username, post_id, post_type, image, num_likes, num_dislikes in cursor.fetchall()
     ]
 
-    cursor.execute("SELECT c.comment_id, c.post_id, c.user_id, c.content, c.date_created, c.date_modified, u.username FROM comments c JOIN users u ON c.user_id = u.user_id")
+    return render_template('feed.html', posts=posts, logged_in=logged_in, username=username)
 
-    comments = [(comment_id, post_id, user_id, content, date_created, date_modified, username) for (comment_id, post_id, user_id, content, date_created, date_modified, username) in cursor.fetchall()]
-
-    return render_template('feed.html', posts=posts, comments=comments, logged_in=logged_in, username=username)
 
 # This route handles the POST request for deleting a post
 @app.route('/delete-post', methods=['POST'])
@@ -351,6 +397,7 @@ def create_post():
 
 @app.route('/comment/<post_id>', methods=['POST'])
 def create_comment(post_id):
+    print("test")
     # Extract the fields from the form data
     user_id = session['user_id']
     content = request.form['content']
