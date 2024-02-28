@@ -84,7 +84,7 @@ def home():
     # Convert the date object to a string
     latest_update_date_str = latest_update[0].strftime('%Y-%m-%d')
 
-    user = session.get['username']
+    user = session.get('username')
     if user:
         response = cookie_check(user)
         return response
