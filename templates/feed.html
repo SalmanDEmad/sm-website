@@ -65,7 +65,7 @@
             <li><a class="dropdown-item" href="#"><i class="fa fa-floppy-o"></i> Hide</a></li>
             {% if logged_in %}
             <li><a class="dropdown-item" href="#"><i class="fa fa-floppy-o"></i> Save</a></li>
-            {% if post[3] == username %}
+            {% if post[3] == session['username'] %}
             <li><a class="dropdown-item" href="#"><i class="fa fa-pencil"></i> Edit</a></li>
             <li><a class="dropdown-item text-danger delete-btn" href="#" data-bs-toggle="modal" data-deleteid = "{{ post[4] }}" data-bs-target="#deleteModal"></i> Delete</a></li>
             {% endif %}
@@ -75,11 +75,11 @@
          </ul>
       </div>
       <div class="collapse mt-3" id="comment-form-{{ post[4] }}">
-         <div class="comment-input-container">
+         <div class="container comment-input-container">
             <form action="{{ url_for('create_comment', post_id=post[4]) }}" method="POST">
                <div class="input-group mb-3">
-                  <input type="text" class="form-control" placeholder="comment" id="comment-input-{{ post[4] }}" name="content">
-                  <button type="submit" class="btn btn-secondary input-group-text">Submit</button>
+                  <input type="text" class="form-control rounded-left" placeholder="comment" id="comment-input-{{ post[4] }}" name="content">
+                  <button type="submit" class="btn input-group-text {% if session['user_id'] %}btn-primary{% else %} disabled btn-secondary{% endif %}">Submit</button>
                </div>
                <span id="comment-error-{{ post[4] }}" class="text-danger"></span>
             </form>
