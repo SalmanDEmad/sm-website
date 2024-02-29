@@ -88,14 +88,18 @@ def home():
     print(session)
 
     user_id_cookie = request.cookies.get('user_id')
+    user_name_cookie = request.cookies.get('username')
 
     user_id = session.get('user_id')
     username = session.get('username')
     user_data = [user_id, username]
 
     if user_id_cookie is None:
-        response = cookie_check(user_data)
-        return response
+        if user_name_cookie is not None:
+            response = cookie_check(user_data)
+            return response
+        else:
+            flash('Log in to see update!', 'Danger')
 
     # Check if the 'update_date' cookie exists and if its value is less than the latest update
     if (updated_cookie == 'false' and
@@ -124,12 +128,10 @@ def cookie_check(user):
     username_cookie = request.cookies.get('username')
     updates_cookie = request.cookies.get('updates')
 
-    if username_cookie is None:
-        response = make_response(redirect(url_for('home')))
-        response.set_cookie('username', str(user[1]))
-
     if updates_cookie is None:
         response = make_response(redirect(url_for('home')))
+
+        response.set_cookie('username', str(user[1]))
 
         response.set_cookie('user_id', str(user[0]))
         
@@ -202,6 +204,10 @@ def login():
             flash('Login failed. Please check your credentials.', 'danger')
 
     return render_template('login.html')
+
+@app.route("/suggestions")
+def suggestions():
+    return render_template('suggestions.html')
 
 @app.route('/logout')
 def logout():
