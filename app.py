@@ -126,7 +126,7 @@ def cookie_check(user):
 
     if username_cookie is None:
         response = make_response(redirect(url_for('home')))
-        response.set_cookie('username', user[1])
+        response.set_cookie('username', str(user[1]))
 
     if updates_cookie is None:
         response = make_response(redirect(url_for('home')))
