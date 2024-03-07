@@ -87,6 +87,7 @@ def user_identifier(user_id):
 def notif():
     cursor.execute("select * from notifications")
     notifications = cursor.fetchall()
+    receiver = session.get()
     for notification in notifications:
         if notification:
             sender_name = user_identifier(notification[0])
@@ -117,6 +118,8 @@ def home():
     username = session.get('username')
     user_data = [user_id, username]
 
+    page = "home"
+
     if user_id_cookie is None:
         if user_name_cookie is not None:
             response = cookie_check(user_data)
@@ -132,7 +135,7 @@ def home():
         return update_cookie_and_database()
     else:
         # Cookies are up-to-date, set 'updated_cookie' to 'false'
-        return render_template('home.html', updated_cookie='false', latest_update=latest_update)
+        return render_template('home.html', page=page, updated_cookie='false', latest_update=latest_update)
 
 def is_admin(username):
     # Check if the user has the 'admin' role in the database

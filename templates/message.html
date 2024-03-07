@@ -12,9 +12,39 @@
 </style>
 
 <div class="container mt-5">
-    <div class="alert alert-info" role="alert">
+    <div class="alert alert-info mt-5" role="alert">
         The messages are not saved. This is a global chat for all members of the website. Enjoy.
+    </div>
+    <div class="alert alert-danger" role="alert">
+        <p>We regret to inform you that the chat feature is currently unavailable on our platform due to limitations with the hosting service we utilize. Unfortunately, web sockets, essential for real-time chatting, are not supported.</p>
+        <p>We apologize for any inconvenience this may cause. To enable chat functionality and enhance your experience, we encourage you to consider supporting our project. Your contribution will go a long way in helping us provide a more robust and interactive platform for everyone.</p>
+            <!-- Button trigger modal -->
+        <button type="button" class="btn btn-primary" data-bs-toggle="modal" data-bs-target="#donationModal">
+            Click here to fund :>
+        </button>
+
+        <p>Thank you for your understanding and support</p>
+    </div>
+  
+  <!-- Modal -->
+  <div class="modal fade" id="donationModal" tabindex="-1" aria-labelledby="donationModalLabel" aria-hidden="true">
+    <div class="modal-dialog">
+      <div class="modal-content">
+        <div class="modal-header">
+          <h1 class="modal-title fs-5" id="donationModalLabel">Donate $2 here</h1>
+          <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+        </div>
+        <div class="modal-body">
+            <div id="paypal-button-container-P-7JG66609SX641005JMXVDPJA"></div>
+        </div>
+        <div class="modal-footer">
+          <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Close</button>
+          <button type="button" class="btn btn-primary">Donate</button>
+        </div>
       </div>
+    </div>
+  </div>
+  
 
     <div id="message_container" class="mb-3">
         <!-- Existing content here -->
@@ -31,6 +61,8 @@
 
 <script src="https://cdnjs.cloudflare.com/ajax/libs/socket.io/4.0.1/socket.io.js" integrity="sha512-q/dWJ3kcmjBLU4Qc47E4A9kTB4m3wuTY7vkFJDTZKjTs8jhyGQnaUrxa0Ytd0ssMZhbNua9hE+E7Qv1j+DyZwA==" crossorigin="anonymous"></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/socket.io/4.0.1/socket.io.js" integrity="sha512-q/dWJ3kcmjBLU4Qc47E4A9kTB4m3wuTY7vkFJDTZKjTs8jhyGQnaUrxa0Ytd0ssMZhbNua9hE+E7Qv1j+DyZwA==" crossorigin="anonymous"></script>
+<script src="https://www.paypal.com/sdk/js?client-id=AbB-j3Isd5GXK1-7isKxyVxUHpeK7SQ8vGw0WLa7QhfP1a4y6WnnkNCNOf_SGx2eSjC8UDVneAMBPqO2&vault=true&intent=subscription" data-sdk-integration-source="button-factory"></script>
+
 <script>
     var socket = io();
     socket.on('connect', function () {
@@ -78,5 +110,23 @@
         console.error('Received error from server:', data);
         alert('Please log in to message');
     });
+
+    paypal.Buttons({
+        style: {
+            shape: 'rect',
+            color: 'gold',
+            layout: 'vertical',
+            label: 'subscribe'
+        },
+        createSubscription: function(data, actions) {
+          return actions.subscription.create({
+            /* Creates the subscription */
+            plan_id: 'P-7JG66609SX641005JMXVDPJA'
+          });
+        },
+        onApprove: function(data, actions) {
+          alert(data.subscriptionID); // You can add optional success message for the subscriber here
+        }
+    }).render('#paypal-button-container-P-7JG66609SX641005JMXVDPJA'); // Renders the PayPal button
 </script>
 {% endblock %}
