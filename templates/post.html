@@ -1,0 +1,122 @@
+<div id="custom-container" class="container col-lg-5 col-md-8 col-12 mx-auto">
+    <div class="card post-container rounded border-secondary shadow" style="margin-top: 80px;">
+       <div class="card-header bg-light">
+          <h5 class="card-title">{{ post[0] }}</h5>
+          <h6 class="card-text text-muted"><a href="{{ url_for('profile', username=post[3]) }}">u/{{ post[3] }}</a> - {{ post[2] }}</h6>
+       </div>
+       <div class="card-body">
+          {% if post[5] == "Text" %}
+          <h5 id = "post-subtitle" class="card-subtitle text-muted">{{ post[1] }}</h5>
+          {% elif post[5] == "Media" %}
+          <div class="image-container">
+             <img id="post-image" src="data:image/png;base64,{{ post[6] }}" alt="Post Image" style="object-fit: cover; width: 100%; height: auto" class="img-fluid">
+          </div>
+          {% endif %}
+       </div>
+       <div class="card-footer d-flex mt-3">
+          <a href="#" class="like-btn me-2" data-postid="{{ post[4] }}">
+             <svg viewBox="0 -0.5 21 21" height="20px" width="20px" version="1.1" xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink" fill="#000000">
+                <g id="SVGRepo_bgCarrier" stroke-width="0"></g>
+                <g id="SVGRepo_tracerCarrier" stroke-linecap="round" stroke-linejoin="round"></g>
+                <g id="SVGRepo_iconCarrier">
+                   <title>like [#1386]</title>
+                   <desc>Created with Sketch.</desc>
+                   <defs> </defs>
+                   <g id="Page-1" stroke="none" stroke-width="1" fill="none" fill-rule="evenodd">
+                      <g class = "like-svg" id="Dribbble-Light-Preview" transform="translate(-219.000000, -760.000000)" fill="{% if post[7] == 1 %}blue{% else %}#555555{% endif %}">
+                         <g id="icons" transform="translate(56.000000, 160.000000)">
+                            <path d="M163,610.021159 L163,618.021159 C163,619.126159 163.93975,620.000159 165.1,620.000159 L167.199999,620.000159 L167.199999,608.000159 L165.1,608.000159 C163.93975,608.000159 163,608.916159 163,610.021159 M183.925446,611.355159 L182.100546,617.890159 C181.800246,619.131159 180.639996,620.000159 179.302297,620.000159 L169.299999,620.000159 L169.299999,608.021159 L171.104948,601.826159 C171.318098,600.509159 172.754498,599.625159 174.209798,600.157159 C175.080247,600.476159 175.599997,601.339159 175.599997,602.228159 L175.599997,607.021159 C175.599997,607.573159 176.070397,608.000159 176.649997,608.000159 L181.127196,608.000159 C182.974146,608.000159 184.340196,609.642159 183.925446,611.355159" id="like-[#1386]"> </path>
+                         </g>
+                      </g>
+                   </g>
+                </g>
+             </svg>
+          </a>
+          <span id="post-likes-dislikes" class="me-2">{{ post[7] - post[8] }}</span>
+          <a href="#" class="dislike-btn me-2" data-postid="{{ post[4] }}">
+             <svg viewBox="0 -0.5 21 21" height="20px" width="20px" version="1.1" xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink" fill="#000000" transform="matrix(-1, 0, 0, -1, 0, 0)">
+                <g id="SVGRepo_bgCarrier" stroke-width="0"></g>
+                <g id="SVGRepo_tracerCarrier" stroke-linecap="round" stroke-linejoin="round"></g>
+                <g id="SVGRepo_iconCarrier">
+                   <title>like [#1386]</title>
+                   <desc>Created with Sketch.</desc>
+                   <defs> </defs>
+                   <g id="Page-1" stroke="none" stroke-width="1" fill="none" fill-rule="evenodd">
+                      <g class = "dislike-svg" id="Dribbble-Light-Preview" transform="translate(-219.000000, -760.000000)" fill="{% if post[8] == 1 %}red{% else %}#555555{% endif %}">
+                         <g id="icons" transform="translate(56.000000, 160.000000)">
+                            <path d="M163,610.021159 L163,618.021159 C163,619.126159 163.93975,620.000159 165.1,620.000159 L167.199999,620.000159 L167.199999,608.000159 L165.1,608.000159 C163.93975,608.000159 163,608.916159 163,610.021159 M183.925446,611.355159 L182.100546,617.890159 C181.800246,619.131159 180.639996,620.000159 179.302297,620.000159 L169.299999,620.000159 L169.299999,608.021159 L171.104948,601.826159 C171.318098,600.509159 172.754498,599.625159 174.209798,600.157159 C175.080247,600.476159 175.599997,601.339159 175.599997,602.228159 L175.599997,607.021159 C175.599997,607.573159 176.070397,608.000159 176.649997,608.000159 L181.127196,608.000159 C182.974146,608.000159 184.340196,609.642159 183.925446,611.355159" id="like-[#1386]"> </path>
+                         </g>
+                      </g>
+                   </g>
+                </g>
+             </svg>
+          </a>
+          <button type="button" class="comment-btn me-2 btn btn-secondary btn-pill" data-bs-toggle="collapse" data-bs-target="#comment-form-{{ post[4] }}" aria-expanded="false" aria-controls="comment-form-{{ post[4] }}">
+            <!-- This is svg for comment button -->
+            <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="currentColor" class="bi bi-chat-right" viewBox="0 0 16 16">
+                 <path d="M2 1a1 1 0 0 0-1 1v8a1 1 0 0 0 1 1h9.586a2 2 0 0 1 1.414.586l2 2V2a1 1 0 0 0-1-1zm12-1a2 2 0 0 1 2 2v12.793a.5.5 0 0 1-.854.353l-2.853-2.853a1 1 0 0 0-.707-.293H2a2 2 0 0 1-2-2V2a2 2 0 0 1 2-2z"/>
+             </svg>
+         </button>
+         
+         <button class="btn btn-secondary btn-pill me-2">
+            <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="currentColor" class="bi bi-share" viewBox="0 0 16 16">
+                <path d="M13.5 1a1.5 1.5 0 1 0 0 3 1.5 1.5 0 0 0 0-3M11 2.5a2.5 2.5 0 1 1 .603 1.628l-6.718 3.12a2.5 2.5 0 0 1 0 1.504l6.718 3.12a2.5 2.5 0 1 1-.488.876l-6.718-3.12a2.5 2.5 0 1 1 0-3.256l6.718-3.12A2.5 2.5 0 0 1 11 2.5m-8.5 4a1.5 1.5 0 1 0 0 3 1.5 1.5 0 0 0 0-3m11 5.5a1.5 1.5 0 1 0 0 3 1.5 1.5 0 0 0 0-3"/>
+              </svg>
+         </button>
+         
+         <button type="button" class="action-btn dropdown-toggle btn btn-secondary btn-pill" data-bs-toggle="dropdown" data-bs-target="#dropdownMenu" aria-expanded="false">
+            <!-- This is svg for ellipsis extra options button -->
+            <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="currentColor" class="bi bi-three-dots-vertical" viewBox="0 0 16 16">
+              <path d="M9.5 13a1.5 1.5 0 1 1-3 0 1.5 1.5 0 0 1 3 0m0-5a1.5 1.5 0 1 1-3 0 1.5 1.5 0 0 1 3 0m0-5a1.5 1.5 0 1 1-3 0 1.5 1.5 0 0 1 3 0"/>
+          </svg>
+          </button>
+          <ul class="dropdown-menu" aria-labelledby="dropdownMenuButton">
+             <li><a class="dropdown-item" href="#"><i class="fa fa-floppy-o"></i> Share</a></li>
+             <li><a class="dropdown-item" href="#"><i class="fa fa-floppy-o"></i> Hide</a></li>
+             {% if logged_in %}
+             <li><a class="dropdown-item" href="#"><i class="fa fa-floppy-o"></i> Save</a></li>
+             {% if post[3] == session['username'] %}
+             <li><a class="dropdown-item" href="#"><i class="fa fa-pencil"></i> Edit</a></li>
+             <li><a class="dropdown-item text-danger delete-btn" href="#" data-bs-toggle="modal" data-deleteid = "{{ post[4] }}" data-bs-target="#deleteModal"></i> Delete</a></li>
+             {% endif %}
+             {% else %}
+             <li><a class="dropdown-item" href="#">Login to Save</a></li>
+             {% endif %}
+          </ul>
+       </div>
+       <div class="collapse mt-3" id="comment-form-{{ post[4] }}">
+          <div class="container comment-input-container">
+             <form action="{{ url_for('create_comment', post_id=post[4]) }}" method="POST">
+                <div class="input-group mb-3">
+                   <input type="text" class="form-control rounded-left" placeholder="comment" id="comment-input-{{ post[4] }}" name="content">
+                   <button type="submit" class="btn input-group-text {% if session['user_id'] %}btn-primary{% else %} disabled btn-secondary{% endif %}">Submit</button>
+                </div>
+                <span id="comment-error-{{ post[4] }}" class="text-danger"></span>
+             </form>
+          </div>
+          <div class="container comment-container">
+             {% for comment in comments if comment[2] == post[4] and comment[6] == "parent" %}
+             {% include 'comment.html'%}
+             {% endfor %}
+          </div>
+       </div>
+    </div>
+    <!-- Delete confirmation modal -->
+    <div class="modal fade" id="deleteModal" tabindex="-1" aria-labelledby="deleteModalLabel" aria-hidden="true">
+       <div class="modal-dialog">
+          <div class="modal-content">
+             <div class="modal-header">
+                <h5 class="modal-title" id="deleteModalLabel">Delete Post</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+             </div>
+             <div class="modal-body">
+                Are you sure you want to delete this post?
+             </div>
+             <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+                <button type="button" class="btn btn-danger" id="deletePostButton">Delete</button>
+             </div>
+          </div>
+       </div>
+    </div>
+  </div>

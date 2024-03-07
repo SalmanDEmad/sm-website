@@ -1,0 +1,43 @@
+
+<details  class="comment" id="comment-1">
+    <a href="#comment-1" class="comment-border-link">
+    <span class="sr-only">Jump to comment-1</span>
+    </a>
+    <summary>
+        <div class="comment-heading">
+            <div class="comment-voting">
+            <button type="button"><span aria-hidden="true">&#9650;</span><span class="sr-only">Vote up</span></button>
+            <button type="button"><span aria-hidden="true">&#9660;</span><span class="sr-only">Vote down</span></button>
+            </div>
+            <div class="comment-info">
+            <a href="#" class="comment-author">{{ nested_reply[1] }}</a><p class="m-0">22 points &bull; {{ nested_reply[4] }}</p>
+            </div>
+        </div>
+    </summary>
+    <div class="comment-body">
+        <p>{{ nested_reply[3] }}</p>
+    <!--nested_reply button-->
+    <button class="btn btn-secondary btn-pill" type="button" data-bs-toggle="collapse" href="#collapseReplyForm{{ nested_reply[0]}}" role="button" aria-expanded="false" aria-controls="collapseReplyForm{{ nested_reply[0]}}"><svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="currentColor" class="bi bi-nested_reply" viewBox="0 0 16 16"><path d="M6.598 5.013a.144.144 0 0 1 .202.134V6.3a.5.5 0 0 0 .5.5c.667 0 2.013.005 3.3.822.984.624 1.99 1.76 2.595 3.876-1.02-.983-2.185-1.516-3.205-1.799a8.7 8.7 0 0 0-1.921-.306 7 7 0 0 0-.798.008h-.013l-.005.001h-.001L7.3 9.9l-.05-.498a.5.5 0 0 0-.45.498v1.153c0 .108-.11.176-.202.134L2.614 8.254l-.042-.028a.147.147 0 0 1 0-.252l.042-.028zM7.8 10.386q.103 0 .223.006c.434.02 1.034.086 1.7.271 1.326.368 2.896 1.202 3.94 3.08a.5.5 0 0 0 .933-.305c-.464-3.71-1.886-5.662-3.46-6.66-1.245-.79-2.527-.942-3.336-.971v-.66a1.144 1.144 0 0 0-1.767-.96l-3.994 2.94a1.147 1.147 0 0 0 0 1.946l3.994 2.94a1.144 1.144 0 0 0 1.767-.96z"/></svg></button>
+    <!--Flag/Report button-->
+    <button class="btn btn-secondary btn-pill" type="button"><svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="currentColor" class="bi bi-flag" viewBox="0 0 16 16"><path d="M14.778.085A.5.5 0 0 1 15 .5V8a.5.5 0 0 1-.314.464L14.5 8l.186.464-.003.001-.006.003-.023.009a12 12 0 0 1-.397.15c-.264.095-.631.223-1.047.35-.816.252-1.879.523-2.71.523-.847 0-1.548-.28-2.158-.525l-.028-.01C7.68 8.71 7.14 8.5 6.5 8.5c-.7 0-1.638.23-2.437.477A20 20 0 0 0 3 9.342V15.5a.5.5 0 0 1-1 0V.5a.5.5 0 0 1 1 0v.282c.226-.079.496-.17.79-.26C4.606.272 5.67 0 6.5 0c.84 0 1.524.277 2.121.519l.043.018C9.286.788 9.828 1 10.5 1c.7 0 1.638-.23 2.437-.477a20 20 0 0 0 1.349-.476l.019-.007.004-.002h.001M14 1.221c-.22.078-.48.167-.766.255-.81.252-1.872.523-2.734.523-.886 0-1.592-.286-2.203-.534l-.008-.003C7.662 1.21 7.139 1 6.5 1c-.669 0-1.606.229-2.415.478A21 21 0 0 0 3 1.845v6.433c.22-.078.48-.167.766-.255C4.576 7.77 5.638 7.5 6.5 7.5c.847 0 1.548.28 2.158.525l.028.01C9.32 8.29 9.86 8.5 10.5 8.5c.668 0 1.606-.229 2.415-.478A21 21 0 0 0 14 7.655V1.222z"/></svg></button>
+    <div class="collapse" id="collapseReplyForm{{ nested_reply[0]}}">
+        <!-- nested_reply form start -->
+        <form method="POST" action="{{ url_for('create_reply', comment_id= nested_reply[0]) }}" class="nested_reply-form" id="comment-1-nested_reply-form">
+            <div class="form-group">
+                <textarea class="form-control" name="content" placeholder="nested_reply to comment" rows="4"></textarea>
+                <input type="hidden" name="post_id" value="{{ post[4] }}">
+            </div>
+            <button type="submit" class="btn btn-primary btn-sm">Submit</button>
+            <button type="button" class="btn btn-secondary btn-sm" data-toggle="nested_reply-form" data-target="comment-1-nested_reply-form">Cancel</button>
+        </form>
+    </div>
+
+        <!-- nested_reply form end -->
+    </div>
+    <div class="replies">
+        {% for nested_reply2 in comments if nested_reply2[8] == nested_reply[0] %}
+        {% include 'comments/reply3.html' %}
+        {% endfor %}
+        <a href="#load-more">Load more replies</a>
+    </div>
+</details>

@@ -1,6 +1,7 @@
 from flask import Flask, render_template, make_response, request, session, redirect, url_for, jsonify, flash
-import json
+from flask_socketio import join_room, leave_room, send, SocketIO, emit
 
+import json
 import mysql.connector
 from datetime import datetime
 import secrets
@@ -14,6 +15,8 @@ from flask_session import Session
 
 app = Flask(__name__, static_folder='static')
 
+socketio = SocketIO(app)
+
 app.config['SESSION_TYPE'] = 'filesystem'  # You can choose a different session type as needed
 Session(app)
 
@@ -23,7 +26,7 @@ app.secret_key = 'troll'
 db_host = os.getenv('DB_HOST', 'localhost')
 db_user = os.getenv('DB_USER', 'root')
 db_password = os.getenv('DB_PASSWORD', 'root')
-db_name = os.getenv('DB_NAME', 'social_media')
+db_name = os.getenv('DB_NAME', 'onzugesu_social')
 
 
 # MySQL database connection
@@ -69,10 +72,30 @@ def update_cookie_and_database():
 
     return response
 
+def user_identifier(user_id):
+    try:
+        cursor.execute("SELECT username FROM users WHERE user_id = %s", (user_id,))
+        result = cursor.fetchone()
+        if result:
+            return result[0]  # Assuming 'username' is at index 0 in the result tuple
+        else:
+            return None
+    finally:
+        cursor.close()
+
+@app.route("/notif")
+def notif():
+    cursor.execute("select * from notifications")
+    notifications = cursor.fetchall()
+    for notification in notifications:
+        if notification:
+            sender_name = user_identifier(notification[0])
+            return render_template("notif.html", notifications = notifications, sender_name = sender_name)
+    return render_template("notif.html")
+
 @app.route("/")
 def home():
     session_print()
-
     # Check if cookies exist
     updated_cookie = request.cookies.get('updated_cookie', 'false')
     update_date_cookie = request.cookies.get('update_date')
@@ -261,21 +284,25 @@ def signup():
 @app.route('/c/<community_name>')
 def community(community_name):
     cursor = db.cursor()
-    query = "SELECT community_id FROM communities WHERE name = %s"
-    cursor.execute(query, (community_name,))
-    community_id = cursor.fetchone()[0]
     query = """
-        SELECT posts.title, posts.content, posts.date_created, users.username, posts.post_id, posts.post_type, 
-            posts.image, COALESCE(SUM(CASE WHEN likes.post_id = posts.post_id THEN 1 ELSE 0 END), 0) AS num_likes,
-            COALESCE(SUM(CASE WHEN dislikes.post_id = posts.post_id THEN 1 ELSE 0 END), 0) AS num_dislikes
-        FROM posts
-        JOIN users ON posts.user_id = users.user_id
-        LEFT JOIN likes ON likes.post_id = posts.post_id
-        LEFT JOIN dislikes ON dislikes.post_id = posts.post_id
-        WHERE posts.community_id = %s
-        GROUP BY posts.post_id
+                SELECT
+                    posts.title,
+                    MAX(posts.content) as content,
+                    MAX(posts.date_created) as date_created,
+                    MAX(users.username) as username,
+                    posts.post_id,
+                    MAX(posts.post_type) as post_type,
+                    MAX(posts.image) as image,
+                    COALESCE(SUM(CASE WHEN likes.post_id = posts.post_id THEN 1 ELSE 0 END), 0) AS num_likes,
+                    COALESCE(SUM(CASE WHEN dislikes.post_id = posts.post_id THEN 1 ELSE 0 END), 0) AS num_dislikes
+                FROM posts
+                JOIN users ON posts.user_id = users.user_id
+                LEFT JOIN likes ON likes.post_id = posts.post_id
+                LEFT JOIN dislikes ON dislikes.post_id = posts.post_id
+                WHERE posts.community_name = %s
+                GROUP BY posts.post_id, posts.title;
     """
-    cursor.execute(query, (community_id,))
+    cursor.execute(query, (community_name,))
 
     posts = [
         (
@@ -502,6 +529,7 @@ def create_comment(post_id):
     # Extract the fields from the form data
     user_id = session['user_id']
     content = request.form['content']
+    comment_type = "parent"
 
     # Check if content is empty
     if not content:
@@ -514,8 +542,8 @@ def create_comment(post_id):
     cursor = db.cursor()
 
     # Execute the SQL query to insert the comment into the comments table
-    sql = "INSERT INTO comments (comment_id, user_id, post_id, content) VALUES (%s, %s, %s, %s)"
-    values = (comment_id, user_id, post_id, content)
+    sql = "INSERT INTO comments (comment_id, user_id, post_id, content, comment_type) VALUES (%s, %s, %s, %s, %s)"
+    values = (comment_id, user_id, post_id, content, comment_type)
     cursor.execute(sql, values)
 
     # Commit the changes to the database
@@ -524,13 +552,82 @@ def create_comment(post_id):
     # Return a response indicating success
     return redirect('/feed')
 
+@app.route('/reply/<comment_id>', methods=['POST'])
+def create_reply(comment_id):
+
+    print('rape')
+    # Extract the fields from the form data
+    user_id = session['user_id']
+    content = request.form['content']
+    post_id = request.form['post_id']
+    print(post_id)
+
+    comment_type = "reply"
+
+    # Check if content is empty
+    if not content:
+        return "You have not entered any text"
+
+    # Generate the comment ID
+    reply_id = secrets.token_hex(4)
+
+    # Execute the SQL query to get the parent comment's comment_id and comment_type
+    sql_get_parent_comment = "SELECT comment_id, comment_type FROM comments WHERE comment_id = %s"
+    cursor.execute(sql_get_parent_comment, (comment_id,))
+    parent_comment_data = cursor.fetchone()
+
+    # Check if the parent comment exists
+    if not parent_comment_data:
+        return "Parent comment not found"
+
+    parent_comment_id, parent_comment_type = parent_comment_data
+
+    # Determine the parent_comment based on the comment_type
+    if parent_comment_type == "parent":
+        parent_comment = comment_id
+    else:
+        parent_comment = parent_comment_id
+
+    # Execute the SQL query to insert the reply into the comments table
+    sql = "INSERT INTO comments (comment_id, user_id, post_id, content, comment_type, replied_comment, parent_comment) VALUES (%s, %s, %s, %s, %s, %s, %s)"
+    values = (reply_id, user_id, post_id, content, comment_type, comment_id, parent_comment)
+    cursor.execute(sql, values)
+
+    # Commit the changes to the database
+    db.commit()
+
+    # Return a response indicating success
+    return redirect('/feed')
+
+def check_friend_request_status(session_user_id, other_user_id):
+    # Check if the session user sent a friend request to the other user
+    cursor.execute("SELECT * FROM communication WHERE requestor_id = %s AND receiver_id = %s", (session_user_id, other_user_id))
+    sent_request = cursor.fetchone()
+    print("Sent Request:", sent_request)
+
+    # Check if the session user received a friend request from the other user
+    cursor.execute("SELECT * FROM communication WHERE requestor_id = %s AND receiver_id = %s", (other_user_id, session_user_id))
+    received_request = cursor.fetchone()
+    print("Received Request:", received_request)
+
+    if sent_request:
+        if sent_request[3]:  # Assuming 'request_status' is at index 3
+            sent_status = "Accepted"
+        else:
+            sent_status = "Pending"
+        print("Sent Status:", sent_status)
+        return sent_status
+    else:
+        if received_request:
+            if received_request[3]:  # Assuming 'request_status' is at index 3
+                received_status = "Accepted"
+            else:
+                received_status = "Accept it"
+            print("Received Status:", received_status)
+            return received_status
 
 @app.route('/u/<username>')
 def profile(username):
-    if session.get('logged_in'):
-        session['logged_in'] = True
-        print("okbubbyretarb")
-
     cursor = db.cursor()
     cursor.execute("SELECT * FROM users WHERE username = %s", (username,))
     user = cursor.fetchone()
@@ -569,10 +666,20 @@ def profile(username):
             for title, content, date_created, username, post_id, post_type, image, num_likes, num_dislikes in cursor.fetchall()
         ]
 
-        return render_template('profile.html', username=user[1].capitalize(), first_name=user[4], last_name=user[5], bio=user[6], profile_pic=profile_data_base64, background_pic=background_data_base64, posts=posts)
+        if session.get('logged_in'):
+            session['logged_in'] = True
+            if username != session.get(username):
+                request_status = check_friend_request_status(session.get('user_id'), user[0])
+                print(request)
+
+        return render_template('profile.html', request_status=request_status, user_id=user[0], username=user[1].capitalize(), first_name=user[4], last_name=user[5], bio=user[6], profile_pic=profile_data_base64, background_pic=background_data_base64, posts=posts)
     else:
         return "User not found"
 
+
+def list_of_communities():
+    cursor.execute("select name from communities")
+    community_name = cursor.fetchone()[0]
 
 @app.route('/c/<community_name>')
 def community_filtered(community_name):
@@ -600,5 +707,42 @@ def create_community():
         return redirect(url_for('community', community_name=community_name))
     return redirect(url_for('community', community_name=community_name))
 
+def send_to_notifs(sender, receiver, notification_type, notif_content, datetime):
+    # Add to notifications in database
+    cursor.execute("INSERT INTO notifications (sender_id, receiver_id, notification_type, notification_content, created_at) VALUES (%s,%s,%s,%s,%s)", (sender, receiver, notification_type, notif_content, datetime))
+    db.commit()
+
+@app.route('/send_request', methods=['POST'])
+def friendRequest():
+    sender_id = session.get('user_id')
+    receiver_id = request.form['recipient']
+    current_datetime = datetime.now()
+    cursor.execute("INSERT INTO communication (requestor_id, receiver_id, request_datetime, request_status, room_number) VALUES (%s, %s, %s, %s, %s)", (sender_id, receiver_id, current_datetime, False, 0))
+    db.commit()
+    notif_type = "Friend Request"
+    notif_content = " wants to be friends with you."
+    send_to_notifs(sender_id, receiver_id, notif_type, notif_content, current_datetime)
+    return "based"
+
+@app.route('/message')
+def message():
+    return  render_template("message.html")
+
+@socketio.on('my event')
+def handle_my_event(data):
+    print('Data from client:', data)
+
+@socketio.on('message')
+def handle_message(data):
+    user=session.get('username')
+    if user is not None:
+        content = data['content']
+        print(user)
+        # Emit the message back to the client
+        socketio.send({'content': content, 'user': user})
+    else:
+        # Emit an error message back to the client
+        emit('error', {'message': 'Please log in'})
+
 if __name__ == '__main__':
-    app.run(debug=True)
+    socketio.run(app, debug=True)

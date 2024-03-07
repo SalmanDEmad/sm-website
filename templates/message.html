@@ -1,0 +1,82 @@
+{% extends 'base.html' %}
+{% block content %}
+<style>
+    /* Custom CSS for chat bubble styling */
+.chat-bubble {
+    background-color: #b7dbfd; /* Change the background color as needed */
+    border-radius: 10px;
+    padding: 10px;
+    margin: 0;
+}
+
+</style>
+
+<div class="container mt-5">
+    <div class="alert alert-info" role="alert">
+        The messages are not saved. This is a global chat for all members of the website. Enjoy.
+      </div>
+
+    <div id="message_container" class="mb-3">
+        <!-- Existing content here -->
+    </div>
+    <div class="input-group container fixed-bottom mb-3">
+        <input type="text" id="messageContent" class="form-control" placeholder="Enter your message" aria-label="Recipient's username" aria-describedby="button-addon2">
+        <button class="btn btn-primary" type="button" id="button-addon2" onclick="sendMessage()"><svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="currentColor" class="bi bi-send" viewBox="0 0 16 16">
+            <path d="M15.854.146a.5.5 0 0 1 .11.54l-5.819 14.547a.75.75 0 0 1-1.329.124l-3.178-4.995L.643 7.184a.75.75 0 0 1 .124-1.33L15.314.037a.5.5 0 0 1 .54.11ZM6.636 10.07l2.761 4.338L14.13 2.576zm6.787-8.201L1.591 6.602l4.339 2.76z"/>
+          </svg></button>
+    </div>
+
+</div>
+
+
+<script src="https://cdnjs.cloudflare.com/ajax/libs/socket.io/4.0.1/socket.io.js" integrity="sha512-q/dWJ3kcmjBLU4Qc47E4A9kTB4m3wuTY7vkFJDTZKjTs8jhyGQnaUrxa0Ytd0ssMZhbNua9hE+E7Qv1j+DyZwA==" crossorigin="anonymous"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/socket.io/4.0.1/socket.io.js" integrity="sha512-q/dWJ3kcmjBLU4Qc47E4A9kTB4m3wuTY7vkFJDTZKjTs8jhyGQnaUrxa0Ytd0ssMZhbNua9hE+E7Qv1j+DyZwA==" crossorigin="anonymous"></script>
+<script>
+    var socket = io();
+    socket.on('connect', function () {
+        socket.emit('my event', { data: 'I\'m connected!' });
+    });
+
+    // Function to send a message to the server
+    function sendMessage() {
+        var messageContent = document.getElementById('messageContent').value;
+
+        if (messageContent) {
+            var messageData = {
+                content: messageContent
+            };
+            socket.emit('message', messageData);
+        } else {
+            alert('Please enter a message.');
+        }
+    }
+
+    socket.on('message', (data) => {
+        console.log(data);
+        // Create a new element (e.g., a card)
+        var newCard = document.createElement('div');
+        newCard.className = 'card mb-3';
+
+        newCard.innerHTML = `
+        <div class="card-body">
+            <div class="d-flex align-items-start">
+                <div class="flex-grow-1">
+                    <h5 class="card-title">${data.user}</h5>
+                    <p class="card-text chat-bubble">${data.content}</p>
+                </div>
+            </div>
+        </div>        
+    `;
+
+        // Get the reference to the existing container div
+        var container = document.getElementById('message_container');
+        // Append the new card to the container
+        container.appendChild(newCard);
+    });
+
+    socket.on('error', function (data) {
+        console.error('Received error from server:', data);
+        alert('Please log in to message');
+    });
+</script>
+{% endblock %}
